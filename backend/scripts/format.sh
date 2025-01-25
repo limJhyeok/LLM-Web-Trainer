@@ -1,5 +1,5 @@
 #!/bin/sh
 set -x
 
-ruff check app scripts --fix
-ruff format app scripts
+ruff check . scripts --fix
+ruff format . scripts
