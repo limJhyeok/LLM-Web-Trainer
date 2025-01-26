@@ -28,12 +28,13 @@ class CausalSelfAttention(nn.Module):
         self.n_head = config.n_head
         self.n_embd = config.n_embd
         # not really a 'bias', more of a mask, but following the OpenAI/HF naming though
-        self.register_buffer(
-            "bias",
-            torch.tril(torch.ones(config.block_size, config.block_size)).view(
-                1, 1, config.block_size, config.block_size
-            ),
-        )
+        # if use flash attention, it's not used
+        # self.register_buffer(
+        #     "bias",
+        #     torch.tril(torch.ones(config.block_size, config.block_size)).view(
+        #         1, 1, config.block_size, config.block_size
+        #     ),
+        # )
 
     def forward(self, x):
         B, T, C = (
@@ -224,7 +225,7 @@ class GPT(nn.Module):
 
         return model
 
-    def configure_optimizers(self, weight_decay, learning_rate, device):
+    def configure_optimizers(self, weight_decay, learning_rate, device_type):
         # start with all of the candidate parameters (that require grad)
         param_dict = {pn: p for pn, p in self.named_parameters()}
         param_dict = {pn: p for pn, p in param_dict.items() if p.requires_grad}
@@ -246,7 +247,7 @@ class GPT(nn.Module):
         )
         # Create AdamW optimizer and use the fused version if it is available
         fused_available = "fused" in inspect.signature(torch.optim.AdamW).parameters
-        use_fused = fused_available and "cuda" in device
+        use_fused = fused_available and device_type == "cuda"
         if master_process:
             print(f"using fused AdamW: {use_fused}")
         optimizer = torch.optim.AdamW(
